@@ -1,3 +1,4 @@
+import { type AirportSummary, findAirports } from "./airports.ts";
 import { envelope, LIMITS, lowestConfidence, SOURCES } from "./envelope.ts";
 import { getInfra } from "./data/faa.ts";
 import { type AirportStatus, getNasStatus } from "./data/nas-status.ts";
@@ -259,4 +260,24 @@ export async function allScores(weights?: Partial<Weights>): Promise<Envelope<Sc
   const nat = await national(weights);
   const peers = nat.scored.filter((s) => s.inPeerSet);
   return scoredEnvelope(peers, peers, nat);
+}
+
+/** Airport search wrapped in the standard envelope, for the find_airports tool. */
+export async function searchAirports(q: { query?: string; states?: string[]; region?: RegionKey; limit?: number }): Promise<Envelope<{ matches: AirportSummary[]; count: number }>> {
+  const matches = findAirports(q);
+  const assumptions = [
+    "Matches are by exact airport code or by city name containing the text; the largest airports come first.",
+    "Passenger counts are scheduled passengers (T-100 class F) over the last 12 months.",
+  ];
+  if (matches.length > 1 && q.query) {
+    assumptions.push("More than one airport matched; state which one you are using and name the alternatives.");
+  }
+  if (matches.length === 0) assumptions.push("No airport matched. Ask the user to rephrase, or try a state or region.");
+  return envelope({ matches, count: matches.length }, {
+    assumptions,
+    dataWindow: dataWindow(),
+    sources: [SOURCES.t100],
+    confidence: "high",
+    confidenceReasons: [],
+  });
 }

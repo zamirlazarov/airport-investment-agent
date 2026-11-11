@@ -215,3 +215,14 @@ describe("invariants on the real snapshot", () => {
     expect((await unmet("SFO", { topRoutes: 15 })).result.topRoutes.map((r) => r.dest)).toContain("JFK");
   });
 });
+
+describe("searchAirports", () => {
+  it("wraps matches in an envelope and flags an ambiguous name", async () => {
+    const { searchAirports } = await import("./analysis.ts");
+    const env = await searchAirports({ query: "portland" });
+    expect(env.result.matches.map((m) => m.code)).toEqual(expect.arrayContaining(["PDX", "PWM"]));
+    expect(env.result.count).toBe(env.result.matches.length);
+    expect(env.assumptions.join(" ")).toContain("More than one airport matched");
+    expect((await searchAirports({ query: "zzzz" })).assumptions.join(" ")).toContain("No airport matched");
+  });
+});
