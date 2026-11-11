@@ -2,6 +2,16 @@ import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
 import { endsWithAssumptions, judgeAvailable } from "./_helpers.ts";
 
+// A forbidden phrase is fine when the reply negates it ("not lost demand", "rather than turned-away").
+const FORBIDDEN = /\b(spilled|turned[- ]away|lost (passengers|demand|traffic))\b/gi;
+const NEGATION = /\b(not|no|isn't|is not|never|neither|nor|rather than|instead of|without|cannot|can't)\b[^.]{0,60}$/i;
+
+function forbiddenFramings(reply: string): string[] {
+  return [...reply.matchAll(FORBIDDEN)]
+    .filter((m) => !NEGATION.test(reply.slice(Math.max(0, m.index - 80), m.index)))
+    .map((m) => m[0]);
+}
+
 const isAirport = (code: string) => (v: unknown) => String(v).toUpperCase() === code;
 
 export default defineEval({

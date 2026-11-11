@@ -21,4 +21,7 @@ export default defineAgent({
   // No shell, file or web tools: every figure the agent states can only come from the
   // analysis tools in agent/tools/.
   defaultTools: false,
+  // No `agent` tool either: it starts copies of this agent, and the dev server's bundled
+  // self-modification subagent has no place in an analyst tool that must answer from its tools.
+  tool: false,
 });

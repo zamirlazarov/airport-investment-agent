@@ -39,7 +39,7 @@
   },
   "packageManager": "npm@11.20.0",
   "scripts": {
-    "dev": "eve dev",
+    "dev": "eve dev --no-default-extensions",
     "dev:web": "next dev apps/web",
     "build:web": "next build apps/web",
     "test": "vitest run",

@@ -51,6 +51,7 @@ Each tool row in the chat expands to its input and output, and every answer ends
 
 ## Good to know
 
+- Voice is English only: speech recognition and read-aloud are set to US English. Typed chat works in any language the model supports.
 - Restarting the dev server leaves earlier chats read-only; start a new chat.
 - The T-100 snapshot is read from `data/` under the project root. A deployment must include that folder.
 - Chats are stored by eve, with no app database: refreshing `/s/<id>` replays the conversation.
