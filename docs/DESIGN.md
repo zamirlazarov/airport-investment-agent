@@ -53,8 +53,13 @@ Congestion comparability: all airports in a run use the same indicator set, name
 
 ## Where AI is used, and where it is not
 
+**The language model does three things:** it reads the question and resolves what it refers to ("LA", "New England", "weight growth more heavily"); it chooses which of the seven tools to call and with which parameters; and it explains the result in plain language. Default model: Claude Haiku 5.5 (configurable, see the README).
 
-I used Claude Code as a development partner. I chose the technology stack and wrote the initial design, which we then refined together. We split the plan into ordered work tasks and Claude implemented them. After each task I reviewed the result, asked for corrections, and tested it, including by hand in the browser, on top of the automated tests we wrote.
+**It never produces a number.** Every figure, score and rank comes from `lib/`, deterministic TypeScript with no model in it. The instructions forbid stating a number that is not in a tool result from the conversation, and a changed assumption ("use 85%") means calling the tool again, not adjusting the figure.
+
+**Disclosure does not depend on the model.** Assumptions, data window, sources and confidence come back from every tool in a fixed envelope, and the chat UI renders them itself next to the answer.
+
+**How the model's part is checked:** multi-turn evals (`npm run eval`) run the four example questions with their follow-ups against the live agent and assert which tools were called with which inputs (for example SFO at an 85% threshold), plus wording rules such as presenting unmet demand as a proxy, not lost demand.
 
 ## Key tradeoffs
 
