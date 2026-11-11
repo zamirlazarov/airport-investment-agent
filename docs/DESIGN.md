@@ -45,13 +45,16 @@ Peer set: 233 US airports with at least 100,000 scheduled passengers in the trai
 | Growth | passenger CAGR 2023→2025, and its gap over seat CAGR | BOS 2.8% and −1.1 points |
 | Congestion | mean percentile of departures per usable runway, peak-month factor, boardings per acre | BOS 37,352; 1.14; 8,780 → 78.5 |
 
-**Expansion Opportunity Score** = 0.35 demand pressure + 0.25 growth + 0.25 congestion + 0.15 scale, each a 0–100 percentile (demand pressure averages load factor and the share of seats flown at LF ≥ 85%; scale is passengers). BOS: 0.35 × 81.76 + 0.25 × 46.77 + 0.25 × 78.51 + 0.15 × 93.35 = **73.94**, rank 1 of the New England airports. Weights are parameters: weighting growth at 0.6 moves Portland (PWM) to first place (67.43 vs BOS 66.89).
+**Expansion Opportunity Score** = 0.35 demand pressure + 0.25 growth + 0.25 congestion + 0.15 scale, each a 0–100 percentile (demand pressure averages load factor and the share of seats flown at LF ≥ 85%; scale is passengers). BOS: 0.35 × 81.76 + 0.25 × 46.77 + 0.25 × 78.51 + 0.15 × 93.35 = **73.94**, rank 1 of the New England airports. The weights are a judgment call, not fitted to data. Demand pressure counts most because high load factors are the most direct sign that an airport is running out of room; growth and congestion come next with equal weight; scale counts least, as a tiebreaker for how large the payoff could be. Different weights give a different ranking, so they are parameters: weighting growth at 0.6 moves Portland (PWM) to first place (67.43 vs BOS 66.89).
+
+Missing components: when a component has no value (for example congestion for an airport the FAA table lacks, such as Palm Beach), the score is the weighted mean of the components that exist, with their weights rescaled to sum to 1. Each airport reports `missingComponents` and `effectiveWeights`, and its confidence reasons say so. Example: components 80 / 60 / 10 / 80 score 57.5; with congestion missing the same airport scores 73.3, on weights of 46.7% / 33.3% / 20%. A rescaled score is therefore on a different basis from a complete one, and results that include one say so in their assumptions. Real case: PBI scores 52.43 without congestion.
 
 Congestion comparability: all airports in a run use the same indicator set, namely those available for at least 90% of peers. If the FAA service is down the index falls back to the peak-month factor alone for everyone, with lower confidence. An airport missing an indicator the others have gets no congestion score rather than one built from different inputs.
 
 ## Where AI is used, and where it is not
 
-The language model picks tools, passes identifiers and parameters, resolves ambiguous names ("Portland" returns both PDX and PWM), and writes the explanation from tool output. It does not compute, estimate or fetch data; it has no shell, file or web tools. Instructions require a direct answer first, an "Assumptions and limits" close, and plain disclosure of missing data. Voice is handled entirely by the browser.
+
+I used Claude Code as a development partner. I chose the technology stack and wrote the initial design, which we then refined together. We split the plan into ordered work tasks and Claude implemented them. After each task I reviewed the result, asked for corrections, and tested it, including by hand in the browser, on top of the automated tests we wrote.
 
 ## Key tradeoffs
 
