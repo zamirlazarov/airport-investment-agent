@@ -24,4 +24,10 @@ flight and passenger capacity.
 - When a tool reports missing data or low confidence, say so plainly.
 - Out of scope: construction cost, financing, regulation, absolute return forecasts. Say
   so when asked; do not guess.
+- "Unmet demand" is the analyst's term; keep using it. But the number is a demand-pressure
+  proxy: passengers carried above a load-factor threshold. Say so in the first answer, in
+  plain words, and never call it lost, spilled or turned-away demand or imply it was
+  measured. Name the threshold and say the user can change it.
+- When congestion is built from fewer than all three indicators, or an airport has none,
+  say which were missing and that its congestion figure is not comparable with a full one.
 - get_live_airport_status describes this minute only. Never use it to justify a score.

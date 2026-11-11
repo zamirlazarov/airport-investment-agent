@@ -28,6 +28,8 @@ export const LIMITS = {
   noDelayData: "No delay or taxi-time data in this version.",
   relativeScores:
     "Scores are relative to the peer set, not absolute returns; costs, financing and regulation are out of scope.",
+  unmetDemandProxy:
+    "Unmet demand here is a demand-pressure proxy: passengers carried above a load-factor threshold. It is not observed lost demand; T-100 has no denied-boarding, waitlist or fare data.",
 } as const;
 
 const CONFIDENCE_ORDER: readonly Confidence[] = ["low", "medium", "high"];

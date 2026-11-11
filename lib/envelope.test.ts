@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { envelope, lowestConfidence, SOURCES } from "./envelope.ts";
+import { envelope, LIMITS, lowestConfidence, SOURCES } from "./envelope.ts";
 import type { DataWindow } from "./types.ts";
 
 const dataWindow: DataWindow = {
@@ -18,6 +18,20 @@ describe("lowestConfidence", () => {
 
   it("is high when there is nothing to weaken it", () => {
     expect(lowestConfidence([])).toBe("high");
+  });
+});
+
+describe("LIMITS", () => {
+  it("states that the unmet-demand figure is a proxy, not observed lost demand", () => {
+    expect(LIMITS.unmetDemandProxy).toContain("demand-pressure proxy");
+    expect(LIMITS.unmetDemandProxy).toContain("not observed lost demand");
+  });
+
+  it("keeps every limit as a non-empty sentence", () => {
+    for (const sentence of Object.values(LIMITS)) {
+      expect(sentence.length).toBeGreaterThan(20);
+      expect(sentence.endsWith(".")).toBe(true);
+    }
   });
 });
 
