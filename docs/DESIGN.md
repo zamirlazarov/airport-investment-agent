@@ -16,7 +16,7 @@ Follow-ups re-call the tool with a changed parameter ("use 85%", "what about Bos
 
 ```
 Browser (Next.js 16)  ── useEveAgent ──►  eve agent (durable sessions)
-  mic / speaker ── /api/voice/* ──► speech-to-text / text-to-speech
+  mic / speaker ── browser Web Speech API (no server route)
                                       agent/tools/*.ts  (thin: validate, call lib, return JSON)
                                             │
                                       lib/  pure TypeScript, no LLM
@@ -51,7 +51,7 @@ Congestion comparability: all airports in a run use the same indicator set, name
 
 ## Where AI is used, and where it is not
 
-The language model picks tools, passes identifiers and parameters, resolves ambiguous names ("Portland" returns both PDX and PWM), and writes the explanation from tool output. It does not compute, estimate or fetch data; it has no shell, file or web tools. Instructions require a direct answer first, an "Assumptions and limits" close, and plain disclosure of missing data. Speech (ElevenLabs) is used only for voice.
+The language model picks tools, passes identifiers and parameters, resolves ambiguous names ("Portland" returns both PDX and PWM), and writes the explanation from tool output. It does not compute, estimate or fetch data; it has no shell, file or web tools. Instructions require a direct answer first, an "Assumptions and limits" close, and plain disclosure of missing data. Voice is handled entirely by the browser.
 
 ## Key tradeoffs
 
@@ -70,4 +70,4 @@ Expected values in tests are hand-written and never computed by the code under t
 
 ## What I would do next
 
-Add BTS On-Time Performance for delay-based congestion; add gate and terminal data if a source is found; a dashboard on the same library; deploy with the snapshot bundled; calibrate weights against historical expansion projects.
+Add BTS On-Time Performance for delay-based congestion; add gate and terminal data if a source is found; higher-quality voice (for example ElevenLabs) on top of the browser's speech; a dashboard on the same library; deploy with the snapshot bundled; calibrate weights against historical expansion projects.

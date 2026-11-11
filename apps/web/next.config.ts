@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const eveRoot = fileURLToPath(new URL("../..", import.meta.url));
 
-// One `.env.local` at the repo root serves both the agent and this app's voice routes.
+// One `.env.local` at the repo root serves both the agent and the Next app.
 loadEnvConfig(eveRoot);
 
 const nextConfig: NextConfig = {

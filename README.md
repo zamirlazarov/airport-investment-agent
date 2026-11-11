@@ -1,6 +1,6 @@
 # Airport Investment Intelligence Agent
 
-A chat (and push-to-talk voice) agent for analysts who fund US airport modernization. Ask where renovation is likely to pay off and get a ranked, explained, sourced answer. Every number comes from deterministic TypeScript code over public BTS and FAA data; the language model only chooses tools and writes the explanation. Design and methodology: [docs/DESIGN.md](docs/DESIGN.md).
+A chat (and browser voice) agent for analysts who fund US airport modernization. Ask where renovation is likely to pay off and get a ranked, explained, sourced answer. Every number comes from deterministic TypeScript code over public BTS and FAA data; the language model only chooses tools and writes the explanation. Design and methodology: [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Run it
 
@@ -16,9 +16,9 @@ npm run dev:web                # http://localhost:3000
 
 Pick **one** route. No key is needed for the first.
 
-1. **Local ChatGPT subscription (no key):** set `AGENT_MODEL=chatgpt`, run `npm run dev`, type `/login` and choose ChatGPT Subscription. Local development only; it cannot run in a deployment, and it gives no voice through the Gateway.
-2. **Vercel AI Gateway key:** set `AI_GATEWAY_API_KEY`. Any model in the Gateway catalog, and ElevenLabs voice. The Gateway needs a card on file to unlock credits.
-3. **Anthropic or OpenAI key directly:** set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. Voice falls back to the browser's built-in speech.
+1. **Local ChatGPT subscription (no key):** set `AGENT_MODEL=chatgpt`, run `npm run dev`, type `/login` and choose ChatGPT Subscription. Local development only; it cannot run in a deployment.
+2. **Vercel AI Gateway key:** set `AI_GATEWAY_API_KEY`. Any model in the Gateway catalog. The Gateway needs a card on file to unlock credits.
+3. **Anthropic or OpenAI key directly:** set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
 
 `AGENT_MODEL` (optional) names the model, for example `anthropic/claude-sonnet-5.5`. The default is Haiku 5.5. See `.env.example`.
 
@@ -51,7 +51,7 @@ Each tool row in the chat expands to its input and output, and every answer ends
 
 ## Good to know
 
-- Voice is English only: speech recognition and read-aloud are set to US English. Typed chat works in any language the model supports.
+- Voice uses the browser's own speech recognition and read-aloud (Web Speech API): English only, and recognition works in Chrome and Edge. No server route or key is involved. Typed chat works in any language the model supports.
 - Restarting the dev server leaves earlier chats read-only; start a new chat.
 - The T-100 snapshot is read from `data/` under the project root. A deployment must include that folder.
 - Chats are stored by eve, with no app database: refreshing `/s/<id>` replays the conversation.
