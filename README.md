@@ -1,10 +1,10 @@
 # Airport Investment Intelligence Agent
 
-A chat (and browser voice) agent for analysts who fund US airport modernization. Ask where renovation is likely to pay off and get a ranked, explained, sourced answer. Every number comes from deterministic TypeScript code over public BTS and FAA data; the language model only chooses tools and writes the explanation. Design and methodology: [docs/DESIGN.md](docs/DESIGN.md).
+A chat agent for analysts who fund US airport modernization. Ask where renovation is likely to pay off and get a ranked, explained, sourced answer. Every number comes from deterministic TypeScript code over public BTS and FAA data; the language model only chooses tools and writes the explanation. Design and methodology: [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Run it
 
-Prerequisites: Node 24 or newer (Node 26 prints an engines warning from eve and works) and npm.
+Prerequisites: Node 24 or newer and npm.
 
 ```bash
 npm install
