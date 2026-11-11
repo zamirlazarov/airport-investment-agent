@@ -31,8 +31,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Trace, TraceIcon, TraceLine, TraceTitle } from "@/components/ui/trace";
 import { suggestFollowUps } from "@/lib/follow-ups";
+import { answerMarkdown } from "@/lib/spoken-summary";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
+import { MicButton, useSpeaker } from "./voice-controls";
 import { WEB_CHAT_AGENT } from "@/app/eve-agent";
 
 const APP_TITLE = "Airport Investment Intelligence";
@@ -61,6 +63,12 @@ export function AgentChat({
   const [hasInputText, setHasInputText] = useState(false);
   const hasSubmittedMessage = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [voiceNotice, setVoiceNotice] = useState<string>();
+  const speaker = useSpeaker();
+  const { speak } = speaker;
+  // Set when a question is asked by voice: the id of the last message at that moment. The
+  // first assistant message after it is read aloud.
+  const speakReplyAfter = useRef<string>(undefined);
   const replaceSessionRoute = (nextSessionId: string) => {
     if (sessionId !== undefined) return;
     // Framework routers (Next.js, TanStack Router) patch window.history; navigating
@@ -195,6 +203,20 @@ export function AgentChat({
         )
       : [];
 
+  // A question asked by voice gets its answer read back once the answer is complete.
+  useEffect(() => {
+    const askedAfter = speakReplyAfter.current;
+    if (askedAfter === undefined || !idle || lastMessage?.role !== "assistant") return;
+    if (lastMessage.id === askedAfter) return; // Still the reply from before the question.
+    speakReplyAfter.current = undefined;
+    void speak(lastMessage.id, answerMarkdown(lastMessage.parts));
+  }, [idle, lastMessage, speak]);
+
+  const sendSpokenQuestion = (text: string) => {
+    speakReplyAfter.current = lastMessage?.id ?? "";
+    sendText(text);
+  };
+
   const composer = (
     <PromptInput onSubmit={handleSubmit}>
       <PromptInputTextarea
@@ -202,6 +224,12 @@ export function AgentChat({
         onChange={(event) => setHasInputText(event.currentTarget.value.trim().length > 0)}
         placeholder="Ask about an airport, a region or a comparison…"
         ref={textareaRef}
+      />
+      <MicButton
+        className="absolute right-12 bottom-2.5"
+        disabled={isResuming}
+        onNotice={setVoiceNotice}
+        onTranscript={sendSpokenQuestion}
       />
       <ComposerAction
         hasInputText={hasInputText}
@@ -241,7 +269,12 @@ export function AgentChat({
                   message={message}
                   questionsFor={questionsFor}
                   showEvidence={idle || message.id !== lastMessage?.id}
+                  speaking={speaker.speakingId === message.id}
                   view={agent.view}
+                  onSpeak={() => {
+                    if (speaker.speakingId === message.id) speaker.stop();
+                    else void speaker.speak(message.id, answerMarkdown(message.parts));
+                  }}
                   onAnswers={async (answers) => {
                     setCancellationError(undefined);
                     await agent.respond(answers).catch((cause: unknown) => {
@@ -285,7 +318,14 @@ export function AgentChat({
             <p className="max-w-md text-muted-foreground text-sm">{APP_TAGLINE}</p>
           </div>
         )}
-        <div className="w-full">{composer}</div>
+        <div className="w-full">
+          {voiceNotice ? (
+            <p className="mb-2 text-muted-foreground text-xs" role="status">
+              {voiceNotice}
+            </p>
+          ) : null}
+          {composer}
+        </div>
         {showConversationLayout ? null : (
           <QuestionChips label="Try one of these" onPick={sendText} questions={STARTER_QUESTIONS} />
         )}

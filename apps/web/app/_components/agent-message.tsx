@@ -19,7 +19,9 @@ import {
   FileIcon,
   ImageIcon,
   KeyRoundIcon,
+  SquareIcon,
   TerminalIcon,
+  Volume2Icon,
   WrenchIcon,
   XCircleIcon,
 } from "lucide-react";
@@ -49,6 +51,7 @@ import {
   TraceTitle,
 } from "@/components/ui/trace";
 import { collectEvidence } from "@/lib/evidence";
+import { answerMarkdown } from "@/lib/spoken-summary";
 import { cn } from "@/lib/utils";
 import { EvidencePanel } from "./evidence-panel";
 
@@ -73,13 +76,22 @@ export function AgentMessage({
   message,
   view,
   showEvidence,
+  speaking,
+  onSpeak,
   ...asks
 }: Asks & {
   readonly message: EveMessage;
   readonly view: SessionView;
   /** False while the answer is still being written, so the panel doesn't grow mid-stream. */
   readonly showEvidence: boolean;
+  /** True while this message is being read aloud. */
+  readonly speaking: boolean;
+  /** Starts reading this message aloud, or stops it. */
+  readonly onSpeak: () => void;
 }) {
+  const isFinishedAnswer =
+    message.role === "assistant" && showEvidence && answerMarkdown(message.parts).length > 0;
+
   return (
     <Message
       data-optimistic={message.metadata?.optimistic ? "true" : undefined}
@@ -95,6 +107,23 @@ export function AgentMessage({
         )}
         {message.role === "assistant" && showEvidence ? (
           <EvidencePanel evidence={collectEvidence(message.parts)} />
+        ) : null}
+        {isFinishedAnswer ? (
+          <Button
+            aria-pressed={speaking}
+            className="-ml-2 h-7 self-start px-2 font-normal text-muted-foreground text-xs"
+            onClick={onSpeak}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            {speaking ? (
+              <SquareIcon className="size-3 fill-current" />
+            ) : (
+              <Volume2Icon className="size-3.5" />
+            )}
+            {speaking ? "Stop" : "Read aloud"}
+          </Button>
         ) : null}
       </MessageContent>
     </Message>
