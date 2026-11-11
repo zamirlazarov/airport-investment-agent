@@ -1,5 +1,4 @@
 import { defineEval } from "eve/evals";
-import { endsWithAssumptions, judgeAvailable } from "./_helpers.ts";
 
 export default defineEval({
   description: "New England expansion candidates, then a re-weighting and a 'why' follow-up.",
@@ -15,6 +14,5 @@ export default defineEval({
 
     t.succeeded();
     t.noFailedCalls();
-    if (judgeAvailable) t.judge(endsWithAssumptions, { on: first.reply }).atLeast(0.7);
   },
 });

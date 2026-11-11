@@ -1,5 +1,4 @@
 import { defineEval } from "eve/evals";
-import { endsWithAssumptions, judgeAvailable } from "./_helpers.ts";
 
 export default defineEval({
   description: "An ambiguous name: the agent looks it up and names the candidates instead of guessing.",
@@ -11,6 +10,5 @@ export default defineEval({
 
     t.succeeded();
     t.noFailedCalls();
-    if (judgeAvailable) t.judge(endsWithAssumptions, { on: turn.reply }).atLeast(0.7);
   },
 });

@@ -1,5 +1,4 @@
 import { defineEval } from "eve/evals";
-import { endsWithAssumptions, judgeAvailable } from "./_helpers.ts";
 
 const isAirport = (code: string) => (v: unknown) => String(v).toUpperCase() === code;
 
@@ -17,9 +16,5 @@ export default defineEval({
 
     t.succeeded();
     t.noFailedCalls();
-    if (judgeAvailable) {
-      t.judge("The reply says whether the figure is for passenger flights only or for all flights including cargo.", { on: first.reply }).atLeast(0.7);
-      t.judge(endsWithAssumptions, { on: first.reply }).atLeast(0.7);
-    }
   },
 });

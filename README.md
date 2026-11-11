@@ -44,7 +44,7 @@ Each tool row in the chat expands to its input and output, and every answer ends
 |---|---|
 | `npm test` | Unit tests (Vitest), including hand-verified fixtures |
 | `npm run typecheck` | TypeScript for the library, agent and web app |
-| `npm run eval` | Multi-turn evals against the live agent (needs a working model route). Judge checks run only with `AI_GATEWAY_API_KEY` |
+| `npm run eval` | Multi-turn evals against the live agent (needs a working model route, for example the local ChatGPT login) |
 | `npm run data:refresh` | Re-download BTS T-100 and rebuild `data/t100-snapshot.json` (several minutes; `--force` ignores the cache) |
 | `npm run dev` | The agent in eve's terminal UI, where `/login` lives |
 | `npm run build:web` | Production build of the web app |

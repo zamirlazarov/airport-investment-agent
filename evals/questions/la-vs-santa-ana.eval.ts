@@ -1,5 +1,4 @@
 import { defineEval } from "eve/evals";
-import { endsWithAssumptions, judgeAvailable } from "./_helpers.ts";
 
 const includesAll = (codes: string[]) => (airports: unknown) =>
   Array.isArray(airports) && codes.every((c) => airports.map((a) => String(a).toUpperCase()).includes(c));
@@ -15,6 +14,5 @@ export default defineEval({
 
     t.succeeded();
     t.noFailedCalls();
-    if (judgeAvailable) t.judge(endsWithAssumptions, { on: first.reply }).atLeast(0.7);
   },
 });

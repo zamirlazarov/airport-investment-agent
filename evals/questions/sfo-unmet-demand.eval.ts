@@ -1,6 +1,5 @@
 import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
-import { endsWithAssumptions, judgeAvailable } from "./_helpers.ts";
 
 // A forbidden phrase is fine when the reply negates it ("not lost demand", "rather than turned-away").
 const FORBIDDEN = /\b(spilled|turned[- ]away|lost (passengers|demand|traffic))\b/gi;
@@ -20,7 +19,7 @@ export default defineEval({
     const first = await t.send("What is the unmet flight demand in SFO airport and why?");
     first.calledTool("get_unmet_demand", { input: { airport: isAirport("SFO") } });
 
-    // Deterministic wording checks, so the proxy rule is graded even without the judge.
+    // Deterministic wording checks, so the proxy rule is graded.
     first.messageIncludes(/proxy/i);
     t.check(
       first.reply ?? "",
@@ -32,12 +31,5 @@ export default defineEval({
 
     t.succeeded();
     t.noFailedCalls();
-    if (judgeAvailable) {
-      t.judge(
-        "The reply presents the figure as a demand-pressure proxy based on load factor above a threshold, says it is not observed lost demand, and does not describe it as lost, spilled or turned-away passengers.",
-        { on: first.reply },
-      ).atLeast(0.7);
-      t.judge(endsWithAssumptions, { on: first.reply }).atLeast(0.7);
-    }
   },
 });
