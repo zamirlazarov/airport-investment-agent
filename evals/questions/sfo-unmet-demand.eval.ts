@@ -1,4 +1,5 @@
 import { defineEval } from "eve/evals";
+import { satisfies } from "eve/evals/expect";
 import { endsWithAssumptions, judgeAvailable } from "./_helpers.ts";
 
 const isAirport = (code: string) => (v: unknown) => String(v).toUpperCase() === code;
@@ -8,6 +9,13 @@ export default defineEval({
   async test(t) {
     const first = await t.send("What is the unmet flight demand in SFO airport and why?");
     first.calledTool("get_unmet_demand", { input: { airport: isAirport("SFO") } });
+
+    // Deterministic wording checks, so the proxy rule is graded even without the judge.
+    first.messageIncludes(/proxy/i);
+    t.check(
+      first.reply ?? "",
+      satisfies((reply: string) => !/\b(spilled|turned[- ]away|lost (passengers|demand))\b/i.test(reply) || /not (observed |measured )?lost/i.test(reply), "does not present the figure as lost or spilled demand"),
+    );
 
     const second = await first.session.send("Use an 85% threshold.");
     second.calledTool("get_unmet_demand", { input: { lfThreshold: 0.85 } });

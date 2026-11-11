@@ -1,6 +1,6 @@
 import { defineAgent } from "eve";
 import { anthropic } from "eve/models/anthropic";
-import { openai } from "eve/models/openai";
+import { chatgpt, openai } from "eve/models/openai";
 import { chooseModel } from "../lib/model-choice.ts";
 
 // The model and provider come from the environment (AGENT_MODEL and the API keys);
@@ -11,7 +11,9 @@ const model =
     ? anthropic(choice.model)
     : choice.provider === "openai"
       ? openai(choice.model)
-      : choice.model;
+      : choice.provider === "chatgpt"
+        ? chatgpt(choice.model)
+        : choice.model;
 
 export default defineAgent({
   model,

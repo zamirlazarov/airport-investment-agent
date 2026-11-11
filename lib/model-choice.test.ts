@@ -88,3 +88,18 @@ describe("chooseModel with AGENT_MODEL", () => {
     expect(() => chooseModel({ AI_GATEWAY_API_KEY: "gw", AGENT_MODEL: value })).toThrow(/provider\/model/);
   });
 });
+
+describe("chooseModel with a ChatGPT subscription", () => {
+  it("uses chatgpt() with eve's default model for AGENT_MODEL=chatgpt, even when a Gateway key is set", () => {
+    expect(chooseModel({ AGENT_MODEL: "chatgpt", AI_GATEWAY_API_KEY: "gw" })).toEqual({ provider: "chatgpt", model: undefined });
+    expect(chooseModel({ AGENT_MODEL: "chatgpt" })).toEqual({ provider: "chatgpt", model: undefined });
+  });
+
+  it("passes a named model through", () => {
+    expect(chooseModel({ AGENT_MODEL: "chatgpt/gpt-5.4" })).toEqual({ provider: "chatgpt", model: "gpt-5.4" });
+  });
+
+  it("does not treat a bare 'chatgpt/' as valid", () => {
+    expect(() => chooseModel({ AGENT_MODEL: "chatgpt/" })).toThrow("must look like provider/model");
+  });
+});

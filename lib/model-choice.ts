@@ -10,7 +10,9 @@ export type ModelChoice =
   /** `model` is Anthropic's own id, e.g. "claude-haiku-5-5". */
   | { provider: "anthropic"; model: string }
   /** `model` is OpenAI's own id, e.g. "gpt-5.4". */
-  | { provider: "openai"; model: string };
+  | { provider: "openai"; model: string }
+  /** The local ChatGPT subscription, signed in with `/login` in `eve dev`. `model` is undefined for eve's default. */
+  | { provider: "chatgpt"; model: string | undefined };
 
 type Env = Readonly<Record<string, string | undefined>>;
 
@@ -31,6 +33,9 @@ function value(env: Env, name: string): string | undefined {
  * - With no key at all it stays on the Gateway: in local development eve can reach it
  *   through its own login, and on Vercel through the project's OIDC token.
  *
+ * - `AGENT_MODEL=chatgpt` (or `chatgpt/<model>`) uses a local ChatGPT subscription instead, whatever
+ *   keys are set. It works only in local development, after `/login`.
+ *
  * Throws when `AGENT_MODEL` is malformed or names a provider that no available key can
  * reach, rather than silently running a different model than the one asked for.
  */
@@ -39,6 +44,11 @@ export function chooseModel(env: Env): ModelChoice {
   const gatewayKey = value(env, "AI_GATEWAY_API_KEY");
   const anthropicKey = value(env, "ANTHROPIC_API_KEY");
   const openaiKey = value(env, "OPENAI_API_KEY");
+
+  if (requested === "chatgpt") return { provider: "chatgpt", model: undefined };
+  if (requested?.startsWith("chatgpt/") && requested.length > "chatgpt/".length) {
+    return { provider: "chatgpt", model: requested.slice("chatgpt/".length) };
+  }
 
   if (requested !== undefined && !/^[^/\s]+\/[^/\s]+$/.test(requested)) {
     throw new Error(
