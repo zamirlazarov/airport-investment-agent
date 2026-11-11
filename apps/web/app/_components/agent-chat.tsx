@@ -126,7 +126,7 @@ export function AgentChat({
     isBusy || isResuming ? undefined : failure(agent.view, turns(agent.view).at(-1)?.turnId);
   const turnFailure =
     failed?.code === "MODEL_CALL_FAILED"
-      ? "The model is temporarily unavailable. Please try again."
+      ? `The model call failed: ${failed.message} Try again; if it keeps failing, check AGENT_MODEL and the API key in .env.local.`
       : failed?.message;
   const errorMessage = cancellationError ?? agent.error?.message ?? turnFailure;
   // After a dev-server restart eve keeps old conversations but no longer runs them.

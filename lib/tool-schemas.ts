@@ -18,7 +18,7 @@ export const weights = z
   })
   .optional()
   .describe(
-    "Optional weights for the Expansion Opportunity Score components, each 0 to 1. Omitted components keep their defaults (demandPressure 0.35, growth 0.25, congestion 0.25, scale 0.15); the result is normalized to sum to 1. To ignore a component set it to 0. Pass them only when the user asks to change the emphasis.",
+    "Optional weights for the Expansion Opportunity Score components, each 0 to 1. Omitted components keep their defaults (demandPressure 0.35, growth 0.25, congestion 0.25, scale 0.15); the result is normalized to sum to 1. To ignore a component set it to 0. Pass them when the user asks to change the emphasis, and keep passing the same weights on later calls in that conversation until the user changes them.",
   );
 
 export const regionKey = z.enum(REGION_KEYS);

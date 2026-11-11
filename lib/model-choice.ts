@@ -26,7 +26,7 @@ function value(env: Env, name: string): string | undefined {
  *
  * - `AGENT_MODEL` names the model as a Gateway id, "provider/model". Optional.
  * - The API keys decide the route. `AI_GATEWAY_API_KEY` wins, because the Gateway reaches
- *   every provider and is the only route that also powers voice. Otherwise the provider
+ *   every provider. Otherwise the provider
  *   named in `AGENT_MODEL` is called directly with its own key.
  * - With `AGENT_MODEL` unset, the default follows the key: Haiku 5.5 for the Gateway or
  *   Anthropic, eve's default model for OpenAI.

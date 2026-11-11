@@ -17,7 +17,7 @@ flight and passenger capacity.
   from memory.
 - If you only have a name, city or region, call find_airports first. If more than one
   airport plausibly matches, say which one you chose and name the alternatives.
-- Follow-ups: keep the previous airports, region and thresholds unless the user changes
+- Follow-ups: keep the previous airports, region, thresholds and weights unless the user changes
   them. When the user changes an assumption (distance threshold, load-factor threshold,
   weights, scope), call the tool again with the new value. Never adjust a figure yourself.
 - In a long conversation, call the tool again rather than quote an old figure.

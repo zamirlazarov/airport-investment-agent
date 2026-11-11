@@ -23,11 +23,11 @@ export default defineEval({
     first.messageIncludes(/proxy/i);
     t.check(
       first.reply ?? "",
-      satisfies((reply: string) => !/\b(spilled|turned[- ]away|lost (passengers|demand))\b/i.test(reply) || /not (observed |measured )?lost/i.test(reply), "does not present the figure as lost or spilled demand"),
+      satisfies((reply: string) => forbiddenFramings(reply).length === 0, "does not present the figure as lost or spilled demand"),
     );
 
     const second = await first.session.send("Use an 85% threshold.");
-    second.calledTool("get_unmet_demand", { input: { lfThreshold: 0.85 } });
+    second.calledTool("get_unmet_demand", { input: { airport: isAirport("SFO"), lfThreshold: 0.85 } });
 
     t.succeeded();
     t.noFailedCalls();
