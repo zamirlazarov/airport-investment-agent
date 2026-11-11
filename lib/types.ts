@@ -69,3 +69,15 @@ export type Snapshot = {
   };
   airports: Record<string, AirportRecord>;
 };
+
+export type Runway = { id: string; lengthFt: number; widthFt: number; surface: string; usable: boolean };
+
+/** What the FAA publishes about an airport's land and runways. */
+export type Infra = {
+  name: string;
+  runways: Runway[];
+  /** Paved runways of at least 5,000 ft. */
+  usableRunwayCount: number;
+  acreage: number | null;
+  effectiveDate: string | null;
+};
