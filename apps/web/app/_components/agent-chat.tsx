@@ -12,7 +12,7 @@ import {
 } from "eve/events";
 import { useEveAgent } from "eve/react";
 import { AlertCircleIcon, BrainIcon, PlusIcon, SquareIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Conversation,
   ConversationContent,
@@ -30,12 +30,25 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
 import { Trace, TraceIcon, TraceLine, TraceTitle } from "@/components/ui/trace";
+import { suggestFollowUps } from "@/lib/follow-ups";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 import { WEB_CHAT_AGENT } from "@/app/eve-agent";
 
-const DEFAULT_AGENT_NAME = "eve-agent";
-const AGENT_NAME = WEB_CHAT_AGENT ?? DEFAULT_AGENT_NAME;
+const APP_TITLE = "Airport Investment Intelligence";
+const APP_TAGLINE =
+  "Ask where airport renovation is likely to pay off. Every figure comes from public FAA and BTS data.";
+
+/** The example questions from the brief, offered on an empty conversation. */
+const STARTER_QUESTIONS = [
+  "Which airports in New England are strong candidates for terminal expansion?",
+  "Compare LA and Santa Ana airport congestion levels.",
+  "What is the percentage of long haul flights out of Anchorage airport?",
+  "What is the unmet flight demand in SFO airport and why?",
+];
+
+const RESTARTED_SERVER_HINT =
+  "If the server was restarted since this conversation began, it can no longer be continued.";
 
 export function AgentChat({
   sessionId,
@@ -47,6 +60,7 @@ export function AgentChat({
   const [cancellationError, setCancellationError] = useState<string>();
   const [hasInputText, setHasInputText] = useState(false);
   const hasSubmittedMessage = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const replaceSessionRoute = (nextSessionId: string) => {
     if (sessionId !== undefined) return;
     // Framework routers (Next.js, TanStack Router) patch window.history; navigating
@@ -76,6 +90,16 @@ export function AgentChat({
     },
   });
 
+  // `/s?q=...` (the dashboard's "ask the agent" link) fills the composer without sending.
+  useEffect(() => {
+    const question = new URLSearchParams(window.location.search).get("q");
+    const textarea = textareaRef.current;
+    if (question === null || textarea === null) return;
+    textarea.value = question;
+    textarea.focus();
+    setHasInputText(question.trim().length > 0);
+  }, []);
+
   const isBusy = agent.status === "busy";
   // A turn waiting on a person is open while the store is idle; it still takes steering and Stop.
   const turnOpen = activeTurn(agent.view) !== undefined;
@@ -97,6 +121,8 @@ export function AgentChat({
       ? "The model is temporarily unavailable. Please try again."
       : failed?.message;
   const errorMessage = cancellationError ?? agent.error?.message ?? turnFailure;
+  // After a dev-server restart eve keeps old conversations but no longer runs them.
+  const resumedSessionFailed = sessionId !== undefined && agent.error !== undefined;
   const hasConversationContent = sessionless || !isEmpty || errorMessage !== undefined;
   const showConversationLayout = isResuming || hasConversationContent;
   const activeSessionId = sessionId ?? agent.session?.sessionId;
@@ -151,12 +177,31 @@ export function AgentChat({
     await agent.send(parts, options);
   };
 
+  /** Sends a question the user picked instead of typed: a starter or a follow-up chip. */
+  const sendText = (text: string) => {
+    // A failed send surfaces through `agent.error`, which the conversation already shows.
+    void handleSubmit({ files: [], text }).catch(() => undefined);
+  };
+
+  const idle = !isBusy && !turnOpen && !isResuming;
+  const followUps =
+    idle && lastMessage?.role === "assistant"
+      ? suggestFollowUps(
+          lastMessage.parts.flatMap((part) =>
+            part.type === "tool" && part.state === "completed"
+              ? [{ input: part.input, name: part.name }]
+              : [],
+          ),
+        )
+      : [];
+
   const composer = (
     <PromptInput onSubmit={handleSubmit}>
       <PromptInputTextarea
         disabled={isResuming}
         onChange={(event) => setHasInputText(event.currentTarget.value.trim().length > 0)}
-        placeholder="Send a message…"
+        placeholder="Ask about an airport, a region or a comparison…"
+        ref={textareaRef}
       />
       <ComposerAction
         hasInputText={hasInputText}
@@ -195,6 +240,7 @@ export function AgentChat({
                   key={message.id}
                   message={message}
                   questionsFor={questionsFor}
+                  showEvidence={idle || message.id !== lastMessage?.id}
                   view={agent.view}
                   onAnswers={async (answers) => {
                     setCancellationError(undefined);
@@ -208,7 +254,18 @@ export function AgentChat({
               ),
             )}
             {showPendingThinking ? <PendingActivity activity={now} /> : null}
-            {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
+            {errorMessage ? (
+              <ErrorMessage
+                hint={resumedSessionFailed ? RESTARTED_SERVER_HINT : undefined}
+                message={errorMessage}
+              />
+            ) : null}
+            {isEmpty && idle && errorMessage === undefined ? (
+              <QuestionChips label="Try one of these" onPick={sendText} questions={STARTER_QUESTIONS} />
+            ) : null}
+            {followUps.length > 0 && errorMessage === undefined ? (
+              <QuestionChips label="Follow up" onPick={sendText} questions={followUps} />
+            ) : null}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
@@ -224,10 +281,14 @@ export function AgentChat({
       >
         {showConversationLayout ? null : (
           <div className="flex flex-col items-center gap-3 text-center">
-            <h1 className="font-medium text-5xl tracking-tighter">{AGENT_NAME}</h1>
+            <h1 className="font-medium text-4xl tracking-tighter sm:text-5xl">{APP_TITLE}</h1>
+            <p className="max-w-md text-muted-foreground text-sm">{APP_TAGLINE}</p>
           </div>
         )}
         <div className="w-full">{composer}</div>
+        {showConversationLayout ? null : (
+          <QuestionChips label="Try one of these" onPick={sendText} questions={STARTER_QUESTIONS} />
+        )}
       </div>
     </main>
   );
@@ -263,7 +324,45 @@ function ComposerAction({
   );
 }
 
-function ErrorMessage({ message }: { readonly message: string }) {
+/** Questions the user can send with one click: starters, or follow-ups to the last answer. */
+function QuestionChips({
+  label,
+  onPick,
+  questions,
+}: {
+  readonly label: string;
+  readonly onPick: (question: string) => void;
+  readonly questions: readonly string[];
+}) {
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <p className="text-muted-foreground text-xs">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {questions.map((question) => (
+          <Button
+            className="h-auto whitespace-normal rounded-full px-3 py-1.5 text-left font-normal text-sm"
+            key={question}
+            onClick={() => onPick(question)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {question}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ErrorMessage({
+  hint,
+  message,
+}: {
+  /** What the user can do about it, shown with a button to start over. */
+  readonly hint?: string;
+  readonly message: string;
+}) {
   return (
     <Message className="max-w-full" from="assistant">
       <MessageContent>
@@ -275,6 +374,20 @@ function ErrorMessage({ message }: { readonly message: string }) {
           <div>
             <p className="font-medium">Request failed</p>
             <p className="mt-0.5 text-muted-foreground">{message}</p>
+            {hint ? (
+              <>
+                <p className="mt-2 text-muted-foreground">{hint}</p>
+                <Button
+                  className="mt-2"
+                  onClick={() => window.location.assign("/s")}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  Start a new chat
+                </Button>
+              </>
+            ) : null}
           </div>
         </div>
       </MessageContent>
@@ -286,7 +399,7 @@ function ChatHeader({ canStartNewChat }: { readonly canStartNewChat: boolean }) 
   return (
     <header className="pointer-events-none fixed top-0 right-0 left-0 z-20 h-14">
       <div className="relative mx-auto flex h-full w-full max-w-3xl items-center justify-center bg-background px-24">
-        <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
+        <span className="truncate text-muted-foreground text-sm">{APP_TITLE}</span>
         {canStartNewChat ? (
           <Button
             aria-label="Start a new chat"

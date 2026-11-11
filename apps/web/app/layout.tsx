@@ -20,8 +20,8 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "eve Next.js Starter",
-  description: "A Next.js starter for eve agents with AI Elements.",
+  title: "Airport Investment Intelligence",
+  description: "An analyst agent for US airport modernization investments, built on public FAA and BTS data.",
 };
 
 export default function RootLayout({ children }: { readonly children: ReactNode }) {

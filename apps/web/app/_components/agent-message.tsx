@@ -48,7 +48,9 @@ import {
   TraceLine,
   TraceTitle,
 } from "@/components/ui/trace";
+import { collectEvidence } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
+import { EvidencePanel } from "./evidence-panel";
 
 export type AgentAnswer = {
   readonly optionId?: string;
@@ -70,8 +72,14 @@ type Step = Extract<EveMessagePart, { type: "reasoning" | "tool" }>;
 export function AgentMessage({
   message,
   view,
+  showEvidence,
   ...asks
-}: Asks & { readonly message: EveMessage; readonly view: SessionView }) {
+}: Asks & {
+  readonly message: EveMessage;
+  readonly view: SessionView;
+  /** False while the answer is still being written, so the panel doesn't grow mid-stream. */
+  readonly showEvidence: boolean;
+}) {
   return (
     <Message
       data-optimistic={message.metadata?.optimistic ? "true" : undefined}
@@ -85,6 +93,9 @@ export function AgentMessage({
             <AgentMessagePart asks={asks} key={partKey(block, index)} part={block} />
           ),
         )}
+        {message.role === "assistant" && showEvidence ? (
+          <EvidencePanel evidence={collectEvidence(message.parts)} />
+        ) : null}
       </MessageContent>
     </Message>
   );
