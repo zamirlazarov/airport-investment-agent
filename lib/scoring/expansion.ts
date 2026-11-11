@@ -124,13 +124,36 @@ export function weightedScore(c: Components, w: Weights): number | null {
   return weightSum > 0 ? round(weighted / weightSum, 2) : null;
 }
 
+/**
+ * The weights a score actually used: each present component's weight divided by the total of the
+ * present weights, and 0 for a missing component. Equal to the requested weights when nothing is missing.
+ */
+export function effectiveWeights(c: Components, w: Weights): Weights {
+  const present = WEIGHT_KEYS.filter((k) => c[k] !== null);
+  const total = sum(present.map((k) => w[k]));
+  return Object.fromEntries(
+    WEIGHT_KEYS.map((k) => [k, c[k] !== null && total > 0 ? w[k] / total : 0]),
+  ) as Weights;
+}
+
 export type ScoredAirport = RawMetrics & {
   components: Components;
+  /** Components with no value (for example congestion without FAA data), which change the score's basis. */
+  missingComponents: (keyof Components)[];
+  /** The weights the score used after dropping missing components; zeros when there is no score. */
+  effectiveWeights: Weights;
   congestionDetail: CongestionDetail;
   score: number | null;
   nationalRank: number | null;
   confidence: Confidence;
   confidenceReasons: string[];
+};
+
+const COMPONENT_LABEL: Record<keyof Components, string> = {
+  demandPressure: "demand pressure",
+  growth: "growth",
+  congestion: "congestion",
+  scale: "scale",
 };
 
 const NO_COMPONENTS: Components = { demandPressure: null, growth: null, congestion: null, scale: null };
@@ -179,6 +202,8 @@ export function scoreAirports(all: RawMetrics[], weights: Weights): ScoredAirpor
       return {
         ...a,
         components: { ...NO_COMPONENTS },
+        missingComponents: [],
+        effectiveWeights: { demandPressure: 0, growth: 0, congestion: 0, scale: 0 },
         congestionDetail: { indicatorSet, indicatorsUsed: [], indicatorsMissing: [] },
         score: null,
         nationalRank: null,
@@ -230,11 +255,23 @@ export function scoreAirports(all: RawMetrics[], weights: Weights): ScoredAirpor
       reasons.push(`${a.code} has under 250,000 passengers, a small sample.`);
     }
 
+    const score = weightedScore(components, weights);
+    const missingComponents = WEIGHT_KEYS.filter((k) => components[k] === null);
+    const effective = score === null ? { demandPressure: 0, growth: 0, congestion: 0, scale: 0 } : effectiveWeights(components, weights);
+    if (score !== null && missingComponents.length > 0) {
+      const used = WEIGHT_KEYS.filter((k) => components[k] !== null).map((k) => `${COMPONENT_LABEL[k]} ${round(effective[k] * 100, 1)}%`);
+      reasons.push(
+        `The score for ${a.code} is computed without ${missingComponents.map((k) => COMPONENT_LABEL[k]).join(" and ")}; the remaining weights are rescaled to ${used.join(", ")}, so it is not on the same basis as scores with all four components.`,
+      );
+    }
+
     return {
       ...a,
       components,
+      missingComponents,
+      effectiveWeights: effective,
       congestionDetail: { indicatorSet, indicatorsUsed: complete ? indicatorSet : [], indicatorsMissing: missing },
-      score: weightedScore(components, weights),
+      score,
       nationalRank: null,
       confidence: issues === 0 ? "high" : issues === 1 ? "medium" : "low",
       confidenceReasons: reasons,

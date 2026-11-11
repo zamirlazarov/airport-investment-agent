@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AirportRecord, Infra } from "../types.ts";
-import { DEFAULT_WEIGHTS, normalizeWeights, rawMetrics, type RawMetrics, scoreAirports, weightedScore } from "./expansion.ts";
+import { DEFAULT_WEIGHTS, effectiveWeights, normalizeWeights, rawMetrics, type RawMetrics, scoreAirports, weightedScore } from "./expansion.ts";
 
 describe("normalizeWeights", () => {
   it("returns the defaults when given nothing", () => {
@@ -44,6 +44,28 @@ describe("weightedScore", () => {
   it("is null without demand pressure, or when the present weights are all zero", () => {
     expect(weightedScore({ demandPressure: null, growth: 60, congestion: 40, scale: 20 }, DEFAULT_WEIGHTS)).toBeNull();
     expect(weightedScore({ demandPressure: 50, growth: null, congestion: null, scale: null }, { demandPressure: 0, growth: 1, congestion: 0, scale: 0 })).toBeNull();
+  });
+});
+
+describe("effectiveWeights", () => {
+  it("equals the requested weights when no component is missing", () => {
+    expect(effectiveWeights({ demandPressure: 80, growth: 60, congestion: 10, scale: 80 }, DEFAULT_WEIGHTS)).toEqual(DEFAULT_WEIGHTS);
+  });
+
+  it("rescales the remaining weights when a component is missing, and shows the change in the score", () => {
+    const full = { demandPressure: 80, growth: 60, congestion: 10, scale: 80 };
+    const noCongestion = { ...full, congestion: null };
+    // 0.35 x 80 + 0.25 x 60 + 0.25 x 10 + 0.15 x 80 = 28 + 15 + 2.5 + 12 = 57.5
+    expect(weightedScore(full, DEFAULT_WEIGHTS)).toBe(57.5);
+    // (28 + 15 + 12) / 0.75 = 73.33
+    expect(weightedScore(noCongestion, DEFAULT_WEIGHTS)).toBeCloseTo(73.33, 2);
+    // 0.35 / 0.75 = 46.67%, 0.25 / 0.75 = 33.33%, 0.15 / 0.75 = 20%
+    const eff = effectiveWeights(noCongestion, DEFAULT_WEIGHTS);
+    expect(eff.demandPressure).toBeCloseTo(0.4667, 4);
+    expect(eff.growth).toBeCloseTo(0.3333, 4);
+    expect(eff.scale).toBeCloseTo(0.2, 4);
+    expect(eff.congestion).toBe(0);
+    expect(eff.demandPressure + eff.growth + eff.scale).toBeCloseTo(1, 9);
   });
 });
 
@@ -195,6 +217,13 @@ describe("scoreAirports", () => {
       expect(p1.components.congestion).toBeNull();
       expect(p1.congestionDetail).toMatchObject({ indicatorsUsed: [], indicatorsMissing: ["boardingsPerAcre"] });
       expect(p1.score).not.toBeNull();
+      // The score's basis changed, and the airport says so.
+      expect(p1.missingComponents).toEqual(["congestion"]);
+      expect(p1.effectiveWeights.congestion).toBe(0);
+      expect(p1.effectiveWeights.demandPressure).toBeCloseTo(0.35 / 0.75, 9);
+      expect(p1.confidenceReasons.join(" ")).toContain("rescaled");
+      expect(scored[9]!.missingComponents).toEqual([]);
+      expect(scored[9]!.effectiveWeights).toEqual(DEFAULT_WEIGHTS);
       expect(p1.confidence).not.toBe("high");
       expect(p1.confidenceReasons.join(" ")).toContain("FAA acreage data");
       // The other nine are scored on all three indicators.

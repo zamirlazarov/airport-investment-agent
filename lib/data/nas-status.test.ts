@@ -47,9 +47,77 @@ describe("parseNasStatus edge cases", () => {
   });
 });
 
+// The fixture was captured at 2026-11-11 14:52 GMT; tests run just after it unless they say otherwise.
+const FIXTURE_NOW = new Date("2026-11-11T15:00:00Z");
+
+describe("parseNasStatus rejects documents that are not a real feed", () => {
+  it.each([
+    ["an HTML error page", "<html><body>502 Bad Gateway</body></html>"],
+    ["an empty body", ""],
+    ["a JSON body", "{}"],
+    ["XML with another root", "<ERROR>down</ERROR>"],
+  ])("throws for %s", (_name, body) => {
+    expect(() => parseNasStatus(body)).toThrow("not the expected AIRPORT_STATUS_INFORMATION document");
+  });
+
+  it("throws when the update time is missing or unreadable", () => {
+    expect(() => parseNasStatus("<AIRPORT_STATUS_INFORMATION></AIRPORT_STATUS_INFORMATION>")).toThrow("no valid update time");
+    expect(() => parseNasStatus("<AIRPORT_STATUS_INFORMATION><Update_Time>yesterday-ish</Update_Time></AIRPORT_STATUS_INFORMATION>")).toThrow("no valid update time");
+  });
+
+  it("accepts an authentic feed that simply has no events", () => {
+    const doc = "<AIRPORT_STATUS_INFORMATION><Update_Time>Wed Nov 11 14:52:42 2026 GMT</Update_Time></AIRPORT_STATUS_INFORMATION>";
+    expect(parseNasStatus(doc).byAirport.size).toBe(0);
+  });
+});
+
 describe("getNasStatus", () => {
-  beforeEach(() => clearNasCache());
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => {
+    clearNasCache();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(FIXTURE_NOW);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    ["an HTML error page", "<html>502 Bad Gateway</html>"],
+    ["an empty body", ""],
+    ["a JSON body", "{}"],
+  ])("returns an error, not 'normal', for %s served with HTTP 200", async (_name, body) => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(body, { status: 200 })));
+    const res = await getNasStatus(["SFO"]);
+    expect(res.error).toContain("did not respond");
+    expect(res.airports).toEqual({});
+    expect(res.updatedAt).toBeNull();
+  });
+
+  it("returns an error for a stale feed", async () => {
+    vi.setSystemTime(new Date("2026-11-11T18:00:00Z")); // three hours after the document's update time
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(xml)));
+    const res = await getNasStatus(["SFO"]);
+    expect(res.error).toContain("stale");
+    expect(res.airports).toEqual({});
+  });
+
+  it("does not cache an invalid document, and recovers with a valid one", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("<html></html>")));
+    expect((await getNasStatus(["SFO"])).error).not.toBeNull();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(xml)));
+    const ok = await getNasStatus(["SFO"]);
+    expect(ok.error).toBeNull();
+    expect(ok.airports["SFO"]!.status).toBe("delays");
+  });
+
+  it("reports an authentic empty feed as normal for every requested airport", async () => {
+    const empty = "<AIRPORT_STATUS_INFORMATION><Update_Time>Wed Nov 11 14:52:42 2026 GMT</Update_Time></AIRPORT_STATUS_INFORMATION>";
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(empty)));
+    const res = await getNasStatus(["SFO", "ANC"]);
+    expect(res.error).toBeNull();
+    expect(res.airports["SFO"]).toEqual({ status: "normal", events: [] });
+  });
 
   it("reports requested airports with no event as normal, and caches for a minute", async () => {
     const fetchMock = vi.fn(async () => new Response(xml));

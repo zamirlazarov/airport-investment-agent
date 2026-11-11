@@ -84,6 +84,41 @@ describe("getInfra", () => {
     expect(error).not.toBeNull();
   });
 
+  it.each([
+    ["an empty object", {}],
+    ["a body with no features list", { objectIdFieldName: "OBJECTID" }],
+    ["features that is not a list", { features: "none" }],
+    ["a malformed feature", { features: [null] }],
+    ["a feature without attributes", { features: [{}] }],
+  ])("treats %s as a failed request, not as missing airports", async (_name, body) => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(body), { status: 200 })));
+    const { infra, error } = await getInfra(["SFO"]);
+    expect(infra.size).toBe(0);
+    expect(error).toContain("did not respond");
+  });
+
+  it("does not cache a malformed answer: a healthy answer afterwards is used", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200 })));
+    expect((await getInfra(["SFO"])).error).not.toBeNull();
+    const fetchMock = respond();
+    vi.stubGlobal("fetch", fetchMock);
+    const second = await getInfra(["SFO"]);
+    expect(second.error).toBeNull();
+    expect(second.infra.has("SFO")).toBe(true);
+    expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("accepts an empty features list as 'the FAA has no such airport', and remembers it", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ features: [] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const first = await getInfra(["QQQ"]);
+    expect(first).toMatchObject({ error: null });
+    expect(first.infra.size).toBe(0);
+    const calls = fetchMock.mock.calls.length;
+    await getInfra(["QQQ"]);
+    expect(fetchMock.mock.calls.length).toBe(calls);
+  });
+
   it("hits the network once for the same codes, including codes the FAA does not know", async () => {
     const fetchMock = respond();
     vi.stubGlobal("fetch", fetchMock);

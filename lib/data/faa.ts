@@ -95,7 +95,13 @@ async function queryLayer(url: string, codes: string[], fields: string, signal?:
     const res = await fetch(`${url}?${params}`, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
     if (!res.ok) throw new Error(`FAA service answered HTTP ${res.status}`);
     const body = (await res.json()) as LayerBody;
+    if (body === null || typeof body !== "object") throw new Error("FAA service returned an unexpected response");
     if (body.error) throw new Error(`FAA service returned an error: ${JSON.stringify(body.error).slice(0, 200)}`);
+    // An empty `features: []` is a valid answer (no such airport); a missing list is a failed request.
+    if (!Array.isArray(body.features)) throw new Error("FAA service returned an unexpected response (no features list)");
+    if (body.features.some((f) => f === null || typeof f !== "object" || typeof f.attributes !== "object" || f.attributes === null)) {
+      throw new Error("FAA service returned an unexpected response (malformed feature)");
+    }
     const rows = features(body);
     all.push(...rows);
     if (!body.exceededTransferLimit || rows.length === 0) break;

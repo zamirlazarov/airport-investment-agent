@@ -35,6 +35,7 @@ Each tool row in the chat expands to its input and output, and every answer ends
 
 - **Unmet demand is a demand-pressure proxy,** passengers carried above a load-factor threshold (default 80%). It is not observed lost demand: public data does not show who was turned away.
 - **Scores are percentiles within a peer set** of US airports with at least 100,000 scheduled passengers. They rank airports against each other; they are not returns.
+- **A score can be missing a component.** If an airport has no congestion value (for example Palm Beach, absent from the FAA table), its score rescales the remaining weights and the answer says so; it is not directly comparable with a complete score.
 - **Congestion confidence drops when FAA data is incomplete.** If the FAA runway service is down, congestion uses the peak-month factor alone for every airport and the answer says so.
 - **Data lags:** T-100 covers air carriers only and runs about four months behind. There is no gate, terminal-area or delay data.
 

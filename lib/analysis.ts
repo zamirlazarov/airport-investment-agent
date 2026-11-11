@@ -43,27 +43,35 @@ function dataWindow(infra?: Iterable<Infra>): DataWindow {
 // --- national scoring -------------------------------------------------------------------------
 
 type Base = { raw: RawMetrics[]; infra: Map<string, Infra>; infraError: string | null };
-let baseMemo: Base | undefined;
+let inflight: Promise<Base> | undefined;
 
-/** Raw metrics for every airport, with FAA data fetched in bulk for the peer set. Failures are not memoized. */
-async function loadBase(): Promise<Base> {
-  if (baseMemo) return baseMemo;
+/**
+ * Raw metrics for every airport, with FAA data fetched in bulk for the peer set. Nothing is memoized
+ * here: `getInfra` keeps successful answers for 24 hours (and never keeps failures), so asking it every
+ * time lets its expiry take effect. Concurrent callers share one pending load.
+ */
+function loadBase(): Promise<Base> {
+  inflight ??= buildBase().finally(() => {
+    inflight = undefined;
+  });
+  return inflight;
+}
+
+async function buildBase(): Promise<Base> {
   const airports = listAirports();
   const usTotal = sum(airports.map((a) => sum(a.pax)));
   const peerCodes = airports.filter((a) => sum(a.pax) >= PEER_FLOOR_PASSENGERS).map((a) => a.code);
   const { infra, error } = await getInfra(peerCodes);
-  const base: Base = {
+  return {
     raw: airports.map((a) => rawMetrics(a, infra.get(a.code), usTotal)),
     infra,
     infraError: error,
   };
-  if (!error) baseMemo = base;
-  return base;
 }
 
-/** Clears the memoized national base. For tests. */
+/** Drops any pending load. For tests. */
 export function resetAnalysisCache(): void {
-  baseMemo = undefined;
+  inflight = undefined;
 }
 
 type National = { scored: ScoredAirport[]; weights: Weights; peerCount: number; infra: Map<string, Infra>; infraError: string | null };
@@ -96,6 +104,13 @@ function scoredEnvelope<T>(result: T, scored: ScoredAirport[], nat: National, ex
   if (nat.infra.size > 0) sources.push(SOURCES.faaFacilities, SOURCES.faaRunways);
   const reasons = scored.flatMap((s) => s.confidenceReasons);
   const levels: Confidence[] = scored.map((s) => s.confidence);
+  const rescaled = scored.filter((s) => s.score !== null && s.missingComponents.length > 0).length;
+  const rescaledNote =
+    rescaled > 0
+      ? [
+          `${rescaled} of the ${scored.length} airports shown are missing a score component. Their scores rescale the remaining weights (see each airport's effectiveWeights), so they are on a different basis than scores with all four components.`,
+        ]
+      : [];
   if (nat.infraError) {
     reasons.unshift(FAA_DOWN_REASON);
     levels.push("medium");
@@ -105,6 +120,7 @@ function scoredEnvelope<T>(result: T, scored: ScoredAirport[], nat: National, ex
       weightsSentence(nat.weights),
       peerSentence(nat.peerCount),
       congestionSentence(nat.scored),
+      ...rescaledNote,
       ...extra,
       LIMITS.noGateData, LIMITS.t100Coverage, LIMITS.noDelayData, LIMITS.relativeScores,
     ],
@@ -210,6 +226,8 @@ export async function unmet(code: string, opts: { lfThreshold?: number; topRoute
 }
 
 export async function liveStatus(codes: string[]): Promise<Envelope<{ updatedAt: string | null; airports: Record<string, AirportStatus> }>> {
+  // Absence from the FAA feed means "normal" only for an airport we know, so reject others first.
+  for (const code of codes) requireAirport(code);
   const res = await getNasStatus(codes);
   if (res.error) throw new Error(res.error);
   return envelope({ updatedAt: res.updatedAt, airports: res.airports }, {

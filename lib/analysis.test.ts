@@ -216,6 +216,13 @@ describe("invariants on the real snapshot", () => {
   });
 });
 
+describe("liveStatus", () => {
+  it("rejects an unknown airport instead of calling it normal", async () => {
+    const { liveStatus } = await import("./analysis.ts");
+    await expect(liveStatus(["SFO", "XXX"])).rejects.toThrow('Unknown airport code "XXX"');
+  });
+});
+
 describe("searchAirports", () => {
   it("wraps matches in an envelope and flags an ambiguous name", async () => {
     const { searchAirports } = await import("./analysis.ts");
