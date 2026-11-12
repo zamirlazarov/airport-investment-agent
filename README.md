@@ -31,14 +31,6 @@ Pick **one** route. No key is needed for the first.
 
 Each tool row in the chat expands to its input and output, and every answer ends with its assumptions, data window and confidence.
 
-## How to read the answers
-
-- **Unmet demand is a demand-pressure proxy,** passengers carried above a load-factor threshold (default 80%). It is not observed lost demand: public data does not show who was turned away.
-- **Scores are percentiles within a peer set** of US airports with at least 100,000 scheduled passengers. They rank airports against each other; they are not returns.
-- **A score can be missing a component.** If an airport has no congestion value (for example Palm Beach, absent from the FAA table), its score rescales the remaining weights and the answer says so; it is not directly comparable with a complete score.
-- **Congestion confidence drops when FAA data is incomplete.** If the FAA runway service is down, congestion uses the peak-month factor alone for every airport and the answer says so.
-- **Data lags:** T-100 covers air carriers only and runs about four months behind. There is no gate, terminal-area or delay data.
-
 ## Commands
 
 | Command | What it does |
@@ -49,10 +41,3 @@ Each tool row in the chat expands to its input and output, and every answer ends
 | `npm run data:refresh` | Re-download BTS T-100 and rebuild `data/t100-snapshot.json` (several minutes; `--force` ignores the cache) |
 | `npm run dev` | The agent in eve's terminal UI, where `/login` lives |
 | `npm run build:web` | Production build of the web app |
-
-## Good to know
-
-- Voice uses the browser's own speech recognition and read-aloud (Web Speech API): English only, and recognition works in Chrome and Edge. No server route or key is involved. Typed chat works in any language the model supports.
-- Restarting the dev server leaves earlier chats read-only; start a new chat.
-- The T-100 snapshot is read from `data/` under the project root. A deployment must include that folder.
-- Chats are stored by eve, with no app database: refreshing `/s/<id>` replays the conversation.

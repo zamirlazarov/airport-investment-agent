@@ -68,6 +68,7 @@ Congestion comparability: all airports in a run use the same indicator set, name
 - **Congestion without delay data:** public delay data needs a login or is too large. Runway, peak and land constraints stand in.
 - **Percentile scores are relative:** an airport's score shifts with the peer set. They rank; they do not predict returns.
 - **No gate or terminal-area data:** "terminal expansion" is inferred from demand pressure and land constraint.
+- **Voice is the browser's, not a server service:** the mic and read-aloud use the Web Speech API, so no key or route is needed, but it is English only and recognition works in Chrome and Edge, not Firefox or Safari. Typed chat is not limited this way.
 - **No database:** sessions live in eve's workflow store; refreshing a session URL replays it, and restarting the dev server makes older sessions read-only.
 
 ## Assumptions, uncertainty and scope
